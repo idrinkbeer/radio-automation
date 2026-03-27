@@ -1,8 +1,10 @@
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const upload = multer({ dest: '/storage/music' });
@@ -16,4 +18,4 @@ app.get('/tracks', (req, res) => {
   res.json(files);
 });
 
-app.listen(3000, '0.0.0.0', () => console.log('API running on 3000'));
+app.listen(3000, '0.0.0.0', () => console.log('API running'));
