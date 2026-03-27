@@ -1,0 +1,55 @@
+services:
+  api:
+    image: node:20
+    container_name: radio-api
+    working_dir: /app
+    volumes:
+      - ./api:/app
+      - ./storage:/storage
+    command: sh -c "npm install && node index.js"
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
+  web:
+    image: node:20
+    container_name: radio-web
+    working_dir: /web
+    volumes:
+      - ./web:/web
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
+  worker:
+    image: node:20
+    container_name: radio-worker
+    working_dir: /worker
+    volumes:
+      - ./worker:/worker
+      - ./storage:/storage
+    command: sh -c "npm install && node scheduler.js"
+    restart: unless-stopped
+
+  liquidsoap:
+    image: ghcr.io/savonet/liquidsoap:v2.2.5
+    container_name: liquidsoap
+    depends_on:
+      - icecast
+    volumes:
+      - ./storage:/storage
+      - ./liquidsoap:/config
+    command: liquidsoap /config/radio.liq
+    restart: unless-stopped
+
+  icecast:
+    image: moul/icecast
+    container_name: icecast
+    ports:
+      - "8000:8000"
+    environment:
+      ICECAST_SOURCE_PASSWORD: hackme
+      ICECAST_ADMIN_PASSWORD: admin
+      ICECAST_PASSWORD: hackme
+    restart: unless-stopped
