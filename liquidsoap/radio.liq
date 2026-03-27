@@ -1,12 +1,9 @@
 set("log.stdout", true)
 
-# Main music playlist
 music = playlist("/storage/music")
 
-# Fallback (prevents crash if empty)
-safe_music = fallback([music, blank(duration=5)])
+safe_music = fallback([music, blank(duration=5.0)])
 
-# Crossfade safely
 radio = crossfade(
   fade_in=3.0,
   fade_out=3.0,
