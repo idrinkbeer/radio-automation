@@ -29,9 +29,25 @@ app.get('/tracks', (req, res) => {
 });
 
 // ENQUEUE
+const net = require('net');
+
 app.post('/enqueue', (req, res) => {
   const track = req.body.track;
-  console.log('🎧 Queueing track:', track);
+
+  const client = new net.Socket();
+
+  client.connect(1234, 'liquidsoap', () => {
+    const command = `request.push /storage/music/${track}\n`;
+    client.write(command);
+    client.end();
+  });
+
+  client.on('error', (err) => {
+    console.error("Liquidsoap error:", err);
+  });
+
+  console.log("🎧 Playing:", track);
+
   res.json({ success: true });
 });
 
