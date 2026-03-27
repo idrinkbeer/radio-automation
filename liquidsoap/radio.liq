@@ -1,14 +1,13 @@
 set("log.stdout", true)
 
-music = playlist("/storage/music")
+# Create a request queue
+q = request.queue(id="radio_queue")
 
-safe_music = fallback([music, blank(duration=5.0)])
-
-radio = crossfade(
-  fade_in=3.0,
-  fade_out=3.0,
-  safe_music
-)
+# Fallback if queue empty
+radio = fallback([
+  q,
+  blank(duration=5.0)
+])
 
 output.icecast(
   %mp3,
