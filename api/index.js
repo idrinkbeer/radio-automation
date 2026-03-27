@@ -12,11 +12,9 @@ app.use(express.json());
 // File upload setup
 const upload = multer({ dest: '/storage/music' });
 
-/**
- * Upload track
- */
-app.post('/upload', upload.single('file'), (req, res) => {
-  res.json({ success: true, file: req.file });
+// MULTIPLE FILE UPLOAD
+app.post('/upload', upload.array('files'), (req, res) => {
+  res.json({ success: true, files: req.files });
 });
 
 /**
