@@ -1,53 +1,51 @@
-import React from "react";
-import { useEffect, useState } from "react";
-
-export default function App() {
-  const [tracks, setTracks] = useState([]);
-  const [playlist, setPlaylist] = useState([]);
-
-  // Load tracks from API
-  const loadTracks = async () => {
-    const res = await fetch("http://192.99.63.54:3001/tracks");
-    const data = await res.json();
-    setTracks(data);
+import React, { useEffect, useState } from "react";
+    uploadFiles(e.target.files);
   };
 
-  useEffect(() => {
-    loadTracks();
-  }, []);
-
-  // Drag start
-  const onDragStart = (track) => {
-    event.dataTransfer.setData("track", track);
+  const handleDropUpload = async (e) => {
+    e.preventDefault();
+    uploadFiles(e.dataTransfer.files);
   };
 
-  // Drop into playlist
-const onDrop = async (e) => {
-  e.preventDefault();
-  const track = e.dataTransfer.getData("track");
+  const onDragStart = (track, e) => {
+    e.dataTransfer.setData("track", track);
+  };
 
-  setPlaylist([...playlist, track]);
+  const onDrop = async (e) => {
+    e.preventDefault();
+    const track = e.dataTransfer.getData("track");
 
-  await fetch("http://192.99.63.54:3001/enqueue", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ track })
-  });
-};
+    setPlaylist([...playlist, track]);
+
+    await fetch(`${API}/enqueue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ track })
+    });
+  };
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      
-      {/* LIBRARY */}
-      <div style={{ width: "40%", padding: 20, borderRight: "1px solid #ccc" }}>
+      <div
+        style={{ width: "40%", padding: 20, borderRight: "1px solid #ccc" }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDropUpload}
+      >
         <h2>🎵 Library</h2>
+
+        <input type="file" multiple onChange={handleFileSelect} />
+
+        <p>Drag & drop files here to upload</p>
+
+        <hr />
+
         {tracks.map((track, i) => (
           <div
             key={i}
             draggable
-            onDragStart={() => onDragStart(track)}
+            onDragStart={(e) => onDragStart(track, e)}
             style={{
               padding: 10,
               marginBottom: 5,
@@ -60,7 +58,6 @@ const onDrop = async (e) => {
         ))}
       </div>
 
-      {/* PLAYLIST */}
       <div
         style={{ width: "60%", padding: 20 }}
         onDragOver={(e) => e.preventDefault()}
