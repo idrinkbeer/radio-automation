@@ -1,4 +1,38 @@
 import React, { useEffect, useState } from "react";
+
+export default function App() {
+  const [tracks, setTracks] = useState([]);
+  const [playlist, setPlaylist] = useState([]);
+
+  const API = "http://192.99.63.54:3001";
+
+  const loadTracks = async () => {
+    const res = await fetch(`${API}/tracks`);
+    const data = await res.json();
+    setTracks(data);
+  };
+
+  useEffect(() => {
+    loadTracks();
+  }, []);
+
+  // MULTI FILE UPLOAD
+  const uploadFiles = async (files) => {
+    const formData = new FormData();
+
+    for (let i = 0; i < files.length; i++) {
+      formData.append("files", files[i]);
+    }
+
+    await fetch(`${API}/upload`, {
+      method: "POST",
+      body: formData
+    });
+
+    loadTracks();
+  };
+
+  const handleFileSelect = (e) => {
     uploadFiles(e.target.files);
   };
 
@@ -15,7 +49,7 @@ import React, { useEffect, useState } from "react";
     e.preventDefault();
     const track = e.dataTransfer.getData("track");
 
-    setPlaylist([...playlist, track]);
+    setPlaylist((prev) => [...prev, track]);
 
     await fetch(`${API}/enqueue`, {
       method: "POST",
@@ -28,6 +62,8 @@ import React, { useEffect, useState } from "react";
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
+      
+      {/* LIBRARY */}
       <div
         style={{ width: "40%", padding: 20, borderRight: "1px solid #ccc" }}
         onDragOver={(e) => e.preventDefault()}
@@ -58,6 +94,7 @@ import React, { useEffect, useState } from "react";
         ))}
       </div>
 
+      {/* PLAYLIST */}
       <div
         style={{ width: "60%", padding: 20 }}
         onDragOver={(e) => e.preventDefault()}
