@@ -1,17 +1,20 @@
 set("log.stdout", true)
 
-set("server.telnet", true)
-set("server.telnet.port", 1234)
+# Enable control server (THIS is the correct way)
+set("server.socket", true)
+set("server.socket.port", 1234)
+set("server.socket.bind_addr", "0.0.0.0")
 
-# Create a request queue
+# Request queue
 q = request.queue(id="radio_queue")
 
-# Fallback if queue empty
+# Safe fallback
 radio = fallback([
   q,
   blank(duration=5.0)
 ])
 
+# Output stream
 output.icecast(
   %mp3,
   host="icecast",
