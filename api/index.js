@@ -19,3 +19,12 @@ app.get('/tracks', (req, res) => {
 });
 
 app.listen(3000, '0.0.0.0', () => console.log('API running'));
+
+app.post('/enqueue', (req, res) => {
+  const track = req.body.track;
+
+  // Send to Liquidsoap via telnet (next step will improve this)
+  console.log("Queueing track:", track);
+
+  res.json({ success: true });
+});
