@@ -7,7 +7,7 @@ export default function App() {
 
   // Load tracks from API
   const loadTracks = async () => {
-    const res = await fetch("http://localhost:3001/tracks");
+    const res = await fetch("http://192.99.63.54:3001/tracks");
     const data = await res.json();
     setTracks(data);
   };
