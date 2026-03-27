@@ -1,3 +1,5 @@
+set("server.telnet", true)
+set("server.telnet.port", 1234)
 set("log.stdout", true)
 
 # Create a request queue
