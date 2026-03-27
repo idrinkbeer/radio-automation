@@ -22,11 +22,20 @@ export default function App() {
   };
 
   // Drop into playlist
-  const onDrop = (e) => {
-    e.preventDefault();
-    const track = e.dataTransfer.getData("track");
-    setPlaylist([...playlist, track]);
-  };
+const onDrop = async (e) => {
+  e.preventDefault();
+  const track = e.dataTransfer.getData("track");
+
+  setPlaylist([...playlist, track]);
+
+  await fetch("http://192.99.63.54:3001/enqueue", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ track })
+  });
+};
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
