@@ -78,19 +78,19 @@ ws.on("ready", () => {
   };
 
   // ✅ CORRECT POSITION
-  const getMarkerPosition = () => {
-    if (!waveRef.current || !duration) return 0;
+const getMarkerPosition = () => {
+  if (!waveRef.current || !duration) return 0;
 
-    const container = waveRef.current.container;
-    if (!container) return 0;
+  const progress = (trackObj.segueStart || 0) / duration;
 
-    const totalWidth = container.scrollWidth || 1;
-    const scrollLeft = container.scrollLeft || 0;
+  // use wrapper width instead of scrollWidth
+  const wrapper = waveRef.current.getWrapper();
+  if (!wrapper) return 0;
 
-    const percent = (trackObj.segueStart || 0) / duration;
+  const width = wrapper.clientWidth;
 
-    return percent * totalWidth - scrollLeft;
-  };
+  return progress * width;
+};
 
   // ✅ DRAG WORKING 100%
   const startDrag = (e) => {
