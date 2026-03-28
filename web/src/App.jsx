@@ -35,7 +35,9 @@ export default function App() {
       },
       body: JSON.stringify({
         tracks: playlist.map(p =>
-          typeof p === "string" ? p : p.file
+          typeof p === "string"
+            ? { file: p, cueIn: 0, cueOut: 0, segueStart: 0 }
+            : p
         )
       })
     });
@@ -84,15 +86,16 @@ export default function App() {
     e.dataTransfer.setData("track", track);
   };
 
-  // DROP INTO PLAYLIST (NEW FORMAT)
+  // DROP INTO PLAYLIST (SEGUE MODE)
   const onDrop = (e) => {
     e.preventDefault();
     const track = e.dataTransfer.getData("track");
 
     const newTrack = {
       file: track,
-      fadeIn: 2,
-      fadeOut: 2
+      cueIn: 0,
+      cueOut: 0,
+      segueStart: 0
     };
 
     setPlaylist((prev) => {
@@ -176,7 +179,7 @@ export default function App() {
         {playlist.map((item, i) => {
           const trackObj =
             typeof item === "string"
-              ? { file: item, fadeIn: 2, fadeOut: 2 }
+              ? { file: item, cueIn: 0, cueOut: 0, segueStart: 0 }
               : item;
 
           return (
@@ -191,17 +194,17 @@ export default function App() {
               <div><b>{i + 1}. {trackObj.file}</b></div>
 
               <div>
-                Fade In: {trackObj.fadeIn}s
+                Cue In: {trackObj.cueIn}s
                 <input
                   type="range"
                   min="0"
-                  max="10"
-                  value={trackObj.fadeIn}
+                  max="300"
+                  value={trackObj.cueIn}
                   onChange={(e) => {
                     const updated = [...playlist];
                     updated[i] = {
                       ...trackObj,
-                      fadeIn: Number(e.target.value)
+                      cueIn: Number(e.target.value)
                     };
                     setPlaylist(updated);
                     localStorage.setItem("playlist", JSON.stringify(updated));
@@ -210,17 +213,17 @@ export default function App() {
               </div>
 
               <div>
-                Fade Out: {trackObj.fadeOut}s
+                Segue Start: {trackObj.segueStart}s
                 <input
                   type="range"
                   min="0"
-                  max="10"
-                  value={trackObj.fadeOut}
+                  max="300"
+                  value={trackObj.segueStart}
                   onChange={(e) => {
                     const updated = [...playlist];
                     updated[i] = {
                       ...trackObj,
-                      fadeOut: Number(e.target.value)
+                      segueStart: Number(e.target.value)
                     };
                     setPlaylist(updated);
                     localStorage.setItem("playlist", JSON.stringify(updated));
