@@ -4,7 +4,7 @@ import WaveSurfer from "wavesurfer.js/dist/wavesurfer.esm.js";
 const API = "http://192.99.63.54:3001";
 
 // 🎵 WAVEFORM COMPONENT
-const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
+const Waveform = ({ trackObj, i, setPlaylist }) => {
   const containerRef = React.useRef(null);
   const waveRef = React.useRef(null);
 
@@ -30,21 +30,26 @@ const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
       setIsReady(true);
     });
 
-    // CLICK → SET SEGUE
+    // ✅ FIXED SEGUE SAVE
     waveRef.current.on("interaction", () => {
       const time = waveRef.current.getCurrentTime();
 
-      const updated = [...playlist];
-      updated[i] = {
-        ...trackObj,
-        segueStart: Math.floor(time)
-      };
+      setPlaylist((prev) => {
+        const updated = [...prev];
 
-      setPlaylist(updated);
-      localStorage.setItem("playlist", JSON.stringify(updated));
+        updated[i] = {
+          ...updated[i],
+          segueStart: Math.floor(time)
+        };
+
+        localStorage.setItem("playlist", JSON.stringify(updated));
+        return updated;
+      });
     });
 
-    return () => waveRef.current.destroy();
+    return () => {
+      if (waveRef.current) waveRef.current.destroy();
+    };
   }, []);
 
   const togglePlay = () => {
@@ -85,12 +90,12 @@ const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
       <div style={{ position: "relative" }}>
         <div ref={containerRef} />
 
-        {/* SEGUE MARKER */}
+        {/* 🔴 SEGUE MARKER */}
         {duration > 0 && (
           <div
             style={{
               position: "absolute",
-              left: `${(trackObj.segueStart / duration) * 100}%`,
+              left: `${((trackObj.segueStart || 0) / duration) * 100}%`,
               top: 0,
               width: 3,
               height: "100%",
@@ -298,7 +303,6 @@ export default function App() {
               <Waveform
                 trackObj={trackObj}
                 i={i}
-                playlist={playlist}
                 setPlaylist={setPlaylist}
               />
 
