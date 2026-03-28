@@ -76,6 +76,19 @@ app.get('/playlist/:name', (req, res) => {
   res.json(JSON.parse(data));
 });
 
+// EXPORT PLAYLIST
+app.post('/playlist/export', (req, res) => {
+  const { tracks } = req.body;
+
+  const content = tracks
+    .map(track => `/storage/music/${track}`)
+    .join('\n');
+
+  fs.writeFileSync('/storage/master.m3u', content);
+
+  res.json({ success: true });
+});
+
 // LIST PLAYLISTS
 setPlaylist((prev) => {
   const updated = [...prev, track];
