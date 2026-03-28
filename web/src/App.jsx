@@ -12,6 +12,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [duration, setDuration] = React.useState(0);
   const [zoom, setZoom] = React.useState(0);
+  const [, forceRender] = React.useState(0); // used to re-render marker
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -30,7 +31,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       setIsReady(true);
     });
 
-    // ✅ FIXED SEGUE SAVE
+    // ✅ SAVE SEGUE (FIXED)
     waveRef.current.on("interaction", () => {
       const time = waveRef.current.getCurrentTime();
 
@@ -45,6 +46,13 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
         localStorage.setItem("playlist", JSON.stringify(updated));
         return updated;
       });
+
+      forceRender((n) => n + 1); // update marker immediately
+    });
+
+    // ✅ update marker when scrolling
+    waveRef.current.on("scroll", () => {
+      forceRender((n) => n + 1);
     });
 
     return () => {
@@ -60,9 +68,31 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
 
   const handleZoom = (value) => {
     setZoom(value);
+
     if (waveRef.current) {
       waveRef.current.zoom(Number(value));
+
+      setTimeout(() => {
+        forceRender((n) => n + 1); // re-align marker after zoom
+      }, 50);
     }
+  };
+
+  // ✅ CORRECT MARKER POSITION (FIXES ZOOM ISSUE)
+  const getMarkerPosition = () => {
+    if (!waveRef.current || !duration) return 0;
+
+    const ws = waveRef.current;
+    const drawer = ws.renderer;
+
+    if (!drawer) return 0;
+
+    const totalWidth = drawer.width;
+    const scrollLeft = ws.container.scrollLeft;
+
+    const progress = (trackObj.segueStart || 0) / duration;
+
+    return progress * totalWidth - scrollLeft;
   };
 
   return (
@@ -90,16 +120,17 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       <div style={{ position: "relative" }}>
         <div ref={containerRef} />
 
-        {/* 🔴 SEGUE MARKER */}
+        {/* 🔴 PERFECTLY ALIGNED MARKER */}
         {duration > 0 && (
           <div
             style={{
               position: "absolute",
-              left: `${((trackObj.segueStart || 0) / duration) * 100}%`,
+              left: `${getMarkerPosition()}px`,
               top: 0,
               width: 3,
               height: "100%",
-              background: "red"
+              background: "red",
+              pointerEvents: "none"
             }}
           />
         )}
