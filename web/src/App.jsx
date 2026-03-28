@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import WaveSurfer from "wavesurfer.js";
+import WaveSurfer from "wavesurfer.js/dist/wavesurfer.esm.js";
 
 const API = "http://192.99.63.54:3001";
 
