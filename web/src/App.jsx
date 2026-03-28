@@ -86,40 +86,47 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   };
 
   // ✅ DRAG LOGIC (container-based)
-  const handleMouseDown = (e) => {
-    const markerX = getMarkerPosition();
-    const clickX = e.nativeEvent.offsetX;
+const handleMouseDown = (e) => {
+  if (!waveRef.current) return;
 
-    // only start drag if clicking near marker
-    if (Math.abs(clickX - markerX) < 15) {
-      setIsDragging(true);
-    }
-  };
+  const container = waveRef.current.container;
+  const rect = container.getBoundingClientRect();
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || !waveRef.current) return;
+  const clickX = e.clientX - rect.left + container.scrollLeft;
+  const markerX = (trackObj.segueStart || 0) / duration * container.scrollWidth;
 
-    const container = waveRef.current.container;
-    const rect = container.getBoundingClientRect();
+  // allow grabbing within 20px
+  if (Math.abs(clickX - markerX) < 20) {
+    setIsDragging(true);
+  }
+};
 
-    const x = e.clientX - rect.left + container.scrollLeft;
-    const totalWidth = container.scrollWidth;
+const handleMouseMove = (e) => {
+  if (!isDragging || !waveRef.current) return;
 
-    const percent = x / totalWidth;
-    const newTime = percent * duration;
+  const container = waveRef.current.container;
+  const rect = container.getBoundingClientRect();
 
-    setPlaylist((prev) => {
-      const updated = [...prev];
-      updated[i] = {
-        ...updated[i],
-        segueStart: Math.max(0, Math.floor(newTime))
-      };
-      localStorage.setItem("playlist", JSON.stringify(updated));
-      return updated;
-    });
+  const x = e.clientX - rect.left + container.scrollLeft;
+  const totalWidth = container.scrollWidth;
 
-    forceRender(n => n + 1);
-  };
+  const percent = x / totalWidth;
+  const newTime = percent * duration;
+
+  setPlaylist((prev) => {
+    const updated = [...prev];
+
+    updated[i] = {
+      ...updated[i],
+      segueStart: Math.max(0, Math.floor(newTime))
+    };
+
+    localStorage.setItem("playlist", JSON.stringify(updated));
+    return updated;
+  });
+
+  forceRender(n => n + 1);
+};
 
   const handleMouseUp = () => {
     setIsDragging(false);
