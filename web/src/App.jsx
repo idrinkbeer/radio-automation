@@ -1,11 +1,73 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import WaveSurfer from "wavesurfer.js";
+
+const API = "http://192.99.63.54:3001";
+
+// 🎵 WAVEFORM COMPONENT
+const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
+  const containerRef = useRef(null);
+  const waveRef = useRef(null);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    waveRef.current = WaveSurfer.create({
+      container: containerRef.current,
+      waveColor: "#777",
+      progressColor: "#00bcd4",
+      height: 60,
+      url: `${API}/music/${trackObj.file}`
+    });
+
+    waveRef.current.on("ready", () => {
+      setDuration(waveRef.current.getDuration());
+    });
+
+    // CLICK → SET SEGUE
+    waveRef.current.on("interaction", () => {
+      const time = waveRef.current.getCurrentTime();
+
+      const updated = [...playlist];
+      updated[i] = {
+        ...trackObj,
+        segueStart: Math.floor(time)
+      };
+
+      setPlaylist(updated);
+      localStorage.setItem("playlist", JSON.stringify(updated));
+    });
+
+    return () => {
+      if (waveRef.current) waveRef.current.destroy();
+    };
+  }, []);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div ref={containerRef} />
+
+      {/* 🔴 SEGUE MARKER */}
+      {duration > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: `${(trackObj.segueStart / duration) * 100}%`,
+            top: 0,
+            width: 3,
+            height: "100%",
+            background: "red"
+          }}
+        />
+      )}
+    </div>
+  );
+};
 
 export default function App() {
   const [tracks, setTracks] = useState([]);
   const [playlist, setPlaylist] = useState([]);
   const [savedPlaylists, setSavedPlaylists] = useState([]);
-
-  const API = "http://192.99.63.54:3001";
 
   const loadTracks = async () => {
     const res = await fetch(`${API}/tracks`);
@@ -179,8 +241,6 @@ export default function App() {
               ? { file: item, segueStart: 0 }
               : item;
 
-          const duration = 300; // placeholder (5 min)
-
           return (
             <div
               key={i}
@@ -192,56 +252,15 @@ export default function App() {
             >
               <div><b>{i + 1}. {trackObj.file}</b></div>
 
-              {/* VISUAL SEGUE EDITOR */}
-              <div
-                style={{
-                  position: "relative",
-                  height: 40,
-                  background: "#333",
-                  marginTop: 10,
-                  cursor: "pointer"
-                }}
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const percent = x / rect.width;
-
-                  const updated = [...playlist];
-                  updated[i] = {
-                    ...trackObj,
-                    segueStart: Math.floor(percent * duration)
-                  };
-
-                  setPlaylist(updated);
-                  localStorage.setItem("playlist", JSON.stringify(updated));
-                }}
-              >
-                {/* FAKE WAVEFORM */}
-                <div
-                  style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    background:
-                      "repeating-linear-gradient(90deg, #555, #555 2px, #777 2px, #777 4px)"
-                  }}
-                />
-
-                {/* SEGUE MARKER */}
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${(trackObj.segueStart / duration) * 100}%`,
-                    top: 0,
-                    width: 3,
-                    height: "100%",
-                    background: "red"
-                  }}
-                />
-              </div>
+              <Waveform
+                trackObj={trackObj}
+                i={i}
+                playlist={playlist}
+                setPlaylist={setPlaylist}
+              />
 
               <div style={{ marginTop: 5 }}>
-                Segue starts at: {trackObj.segueStart}s
+                Segue starts at: {trackObj.segueStart || 0}s
               </div>
             </div>
           );
