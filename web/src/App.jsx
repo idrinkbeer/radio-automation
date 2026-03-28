@@ -13,6 +13,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const [duration, setDuration] = React.useState(0);
   const [zoom, setZoom] = React.useState(0);
   const [, forceRender] = React.useState(0); // used to re-render marker
+  const [isDragging, setIsDragging] = React.useState(false);
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -130,7 +131,7 @@ const getMarkerPosition = () => {
     width: 6,
     height: "100%",
     background: "red",
-    cursor: "ew-resize",
+    pointerEvents: "none", // 👈 IMPORTANT
     zIndex: 10
   }}
   onMouseDown={(e) => {
