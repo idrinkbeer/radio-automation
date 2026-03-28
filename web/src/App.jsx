@@ -16,6 +16,11 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   React.useEffect(() => {
     if (!containerRef.current) return;
 
+    // ✅ prevent duplicate instances (fixes white screen)
+    if (waveRef.current) {
+      waveRef.current.destroy();
+    }
+
     waveRef.current = WaveSurfer.create({
       container: containerRef.current,
       waveColor: "#777",
@@ -25,14 +30,25 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       url: `http://192.99.63.54:3001/music/${trackObj.file}`
     });
 
+    // ready
     waveRef.current.on("ready", () => {
       setDuration(waveRef.current.getDuration());
       setIsReady(true);
     });
 
-    // ✅ CLICK TO SET SEGUE (WORKS 100%)
-    waveRef.current.on("click", (progress) => {
-      const newTime = progress * waveRef.current.getDuration();
+    // ✅ SAFE CLICK HANDLER (no crashes)
+    waveRef.current.on("interaction", (e) => {
+      if (!waveRef.current || !e) return;
+
+      const ws = waveRef.current;
+      const container = ws.container;
+      const rect = container.getBoundingClientRect();
+
+      const x = e.clientX - rect.left + container.scrollLeft;
+      const totalWidth = container.scrollWidth;
+
+      const percent = x / totalWidth;
+      const newTime = percent * ws.getDuration();
 
       setPlaylist((prev) => {
         const updated = [...prev];
@@ -49,13 +65,15 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       forceRender(n => n + 1);
     });
 
-    // keep marker aligned when scrolling
+    // keep marker aligned on scroll
     waveRef.current.on("scroll", () => {
       forceRender(n => n + 1);
     });
 
-    return () => waveRef.current.destroy();
-  }, []);
+    return () => {
+      if (waveRef.current) waveRef.current.destroy();
+    };
+  }, [trackObj.file]);
 
   const togglePlay = () => {
     if (!waveRef.current) return;
@@ -65,17 +83,20 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
 
   const handleZoom = (value) => {
     setZoom(value);
+
     if (waveRef.current) {
       waveRef.current.zoom(Number(value));
       setTimeout(() => forceRender(n => n + 1), 50);
     }
   };
 
-  // ✅ Marker position (perfect with zoom)
+  // ✅ marker always aligned
   const getMarkerPosition = () => {
     if (!waveRef.current || !duration) return 0;
 
     const container = waveRef.current.container;
+    if (!container) return 0;
+
     const scrollWidth = container.scrollWidth;
     const scrollLeft = container.scrollLeft;
 
@@ -84,7 +105,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     return progress * scrollWidth - scrollLeft;
   };
 
-  // ✅ fine adjust buttons
+  // fine adjust
   const adjustSegue = (amount) => {
     setPlaylist((prev) => {
       const updated = [...prev];
@@ -124,7 +145,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
           />
         </span>
 
-        {/* 🔧 fine adjust */}
+        {/* fine adjust */}
         <span style={{ marginLeft: 15 }}>
           <button onClick={() => adjustSegue(-1)}>-1s</button>
           <button onClick={() => adjustSegue(1)}>+1s</button>
@@ -158,7 +179,6 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     </div>
   );
 };
-
 export default function App() {
   const [tracks, setTracks] = useState([]);
   const [playlist, setPlaylist] = useState([]);
