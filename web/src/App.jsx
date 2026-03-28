@@ -104,7 +104,8 @@ const getMarkerPosition = () => {
       const rect = container.getBoundingClientRect();
 
       const x = moveEvent.clientX - rect.left + container.scrollLeft;
-      const percent = x / (container.scrollWidth || 1);
+      const width = container.clientWidth || 1;
+      const percent = x / width;
       const newTime = percent * duration;
 
       setPlaylist((prev) => {
