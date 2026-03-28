@@ -79,16 +79,11 @@ app.post('/playlist/export', (req, res) => {
     return res.status(400).json({ error: "No tracks provided" });
   }
 
-  const filePath = '/storage/master.m3u';
-
   const content = tracks
-    .map(track => `/storage/music/${track}`)
+    .map(t => `/storage/music/${t.file}`)
     .join('\n');
 
-  fs.writeFileSync(filePath, content);
-
-  console.log("✅ MASTER PLAYLIST CREATED:");
-  console.log(content);
+  fs.writeFileSync('/storage/master.m3u', content);
 
   res.json({ success: true });
 });
