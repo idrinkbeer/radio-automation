@@ -95,8 +95,8 @@ const handleMouseDown = (e) => {
   const clickX = e.clientX - rect.left + container.scrollLeft;
   const markerX = (trackObj.segueStart || 0) / duration * container.scrollWidth;
 
-  // allow grabbing within 20px
-  if (Math.abs(clickX - markerX) < 20) {
+  // allow grabbing within 40px
+  if (Math.abs(clickX - markerX) < 40) {
     setIsDragging(true);
   }
 };
@@ -170,7 +170,7 @@ const handleMouseMove = (e) => {
               position: "absolute",
               left: `${getMarkerPosition()}px`,
               top: 0,
-              width: 6,
+              width: 3,
               height: "100%",
               background: "red",
               pointerEvents: "none",
