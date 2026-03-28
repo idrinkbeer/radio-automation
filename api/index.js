@@ -45,6 +45,17 @@ app.post('/enqueue', (req, res) => {
     client.end();
   });
 
+  // LIST PLAYLISTS
+app.get('/playlists', (req, res) => {
+  const files = fs.readdirSync('/storage');
+
+  const playlists = files
+    .filter(f => f.endsWith('.json'))   // only JSON files
+    .map(f => f.replace('.json', ''));  // remove extension
+
+  res.json(playlists);
+});
+  
   // SAVE PLAYLIST
 app.post('/playlist/save', (req, res) => {
   const { name, tracks } = req.body;
