@@ -122,17 +122,55 @@ const getMarkerPosition = () => {
 
         {/* 🔴 PERFECTLY ALIGNED MARKER */}
         {duration > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              left: `${getMarkerPosition()}px`,
-              top: 0,
-              width: 3,
-              height: "100%",
-              background: "red",
-              pointerEvents: "none"
-            }}
-          />
+<div
+  style={{
+    position: "absolute",
+    left: `${getMarkerPosition()}px`,
+    top: 0,
+    width: 6,
+    height: "100%",
+    background: "red",
+    cursor: "ew-resize",
+    zIndex: 10
+  }}
+  onMouseDown={(e) => {
+    e.preventDefault();
+
+    const onMove = (moveEvent) => {
+      const ws = waveRef.current;
+      if (!ws) return;
+
+      const container = ws.container;
+      const rect = container.getBoundingClientRect();
+
+      const x = moveEvent.clientX - rect.left + container.scrollLeft;
+      const totalWidth = container.scrollWidth;
+
+      const percent = x / totalWidth;
+      const newTime = percent * duration;
+
+      setPlaylist((prev) => {
+        const updated = [...prev];
+
+        updated[i] = {
+          ...updated[i],
+          segueStart: Math.max(0, Math.floor(newTime))
+        };
+
+        localStorage.setItem("playlist", JSON.stringify(updated));
+        return updated;
+      });
+    };
+
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }}
+/>
         )}
       </div>
 
