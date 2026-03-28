@@ -5,23 +5,29 @@ const API = "http://192.99.63.54:3001";
 
 // 🎵 WAVEFORM COMPONENT
 const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
-  const containerRef = useRef(null);
-  const waveRef = useRef(null);
-  const [duration, setDuration] = useState(0);
+  const containerRef = React.useRef(null);
+  const waveRef = React.useRef(null);
 
-  useEffect(() => {
+  const [isReady, setIsReady] = React.useState(false);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [duration, setDuration] = React.useState(0);
+  const [zoom, setZoom] = React.useState(0);
+
+  React.useEffect(() => {
     if (!containerRef.current) return;
 
     waveRef.current = WaveSurfer.create({
       container: containerRef.current,
       waveColor: "#777",
       progressColor: "#00bcd4",
-      height: 60,
-      url: `${API}/music/${trackObj.file}`
+      cursorColor: "yellow",
+      height: 80,
+      url: `http://192.99.63.54:3001/music/${trackObj.file}`
     });
 
     waveRef.current.on("ready", () => {
       setDuration(waveRef.current.getDuration());
+      setIsReady(true);
     });
 
     // CLICK → SET SEGUE
@@ -38,28 +44,65 @@ const Waveform = ({ trackObj, i, playlist, setPlaylist }) => {
       localStorage.setItem("playlist", JSON.stringify(updated));
     });
 
-    return () => {
-      if (waveRef.current) waveRef.current.destroy();
-    };
+    return () => waveRef.current.destroy();
   }, []);
 
-  return (
-    <div style={{ position: "relative" }}>
-      <div ref={containerRef} />
+  const togglePlay = () => {
+    if (!waveRef.current) return;
+    waveRef.current.playPause();
+    setIsPlaying(!isPlaying);
+  };
 
-      {/* 🔴 SEGUE MARKER */}
-      {duration > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${(trackObj.segueStart / duration) * 100}%`,
-            top: 0,
-            width: 3,
-            height: "100%",
-            background: "red"
-          }}
-        />
-      )}
+  const handleZoom = (value) => {
+    setZoom(value);
+    if (waveRef.current) {
+      waveRef.current.zoom(Number(value));
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      
+      {/* CONTROLS */}
+      <div style={{ marginBottom: 5 }}>
+        <button onClick={togglePlay} disabled={!isReady}>
+          {isPlaying ? "⏸ Pause" : "▶️ Play"}
+        </button>
+
+        <span style={{ marginLeft: 10 }}>
+          Zoom:
+          <input
+            type="range"
+            min="0"
+            max="200"
+            value={zoom}
+            onChange={(e) => handleZoom(e.target.value)}
+          />
+        </span>
+      </div>
+
+      {/* WAVEFORM */}
+      <div style={{ position: "relative" }}>
+        <div ref={containerRef} />
+
+        {/* SEGUE MARKER */}
+        {duration > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              left: `${(trackObj.segueStart / duration) * 100}%`,
+              top: 0,
+              width: 3,
+              height: "100%",
+              background: "red"
+            }}
+          />
+        )}
+      </div>
+
+      <div style={{ marginTop: 5 }}>
+        Segue: {trackObj.segueStart || 0}s
+      </div>
     </div>
   );
 };
