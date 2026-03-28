@@ -9,6 +9,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const waveRef = useRef(null);
 
   const [isReady, setIsReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [zoom, setZoom] = useState(0);
   const [, forceRender] = useState(0);
@@ -16,7 +17,6 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // destroy safely
     if (waveRef.current) {
       waveRef.current.destroy();
       waveRef.current = null;
@@ -38,37 +38,45 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       setDuration(dur);
       setIsReady(true);
 
-      // ✅ set default segue near END
-      if (!trackObj.segueStart) {
+      // ✅ FIX: only set if UNDEFINED (not 0)
+      if (trackObj.segueStart === undefined) {
         setPlaylist((prev) => {
           const updated = [...prev];
           updated[i] = {
             ...updated[i],
-            segueStart: Math.max(0, Math.floor(dur - 5))
+            segueStart: Math.max(0, Math.floor(dur - 5)) // end of track
           };
+          localStorage.setItem("playlist", JSON.stringify(updated));
           return updated;
         });
       }
     });
 
-    ws.on("scroll", () => {
-      forceRender((n) => n + 1);
-    });
+    ws.on("scroll", () => forceRender(n => n + 1));
 
-    return () => {
-      ws.destroy();
-    };
+    return () => ws.destroy();
   }, [trackObj.file]);
 
-  const handleZoom = (value) => {
-    setZoom(value);
-    if (waveRef.current) {
-      waveRef.current.zoom(Number(value));
-      setTimeout(() => forceRender((n) => n + 1), 50);
+  // ✅ PLAY BUTTON BACK
+  const togglePlay = () => {
+    if (!waveRef.current) return;
+
+    if (isPlaying) {
+      waveRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      waveRef.current.play();
+      setIsPlaying(true);
     }
   };
 
-  // ✅ SAFE marker position
+  const handleZoom = (value) => {
+    setZoom(value);
+    waveRef.current?.zoom(Number(value));
+    setTimeout(() => forceRender(n => n + 1), 50);
+  };
+
+  // ✅ CORRECT POSITION
   const getMarkerPosition = () => {
     if (!waveRef.current || !duration) return 0;
 
@@ -83,7 +91,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     return percent * totalWidth - scrollLeft;
   };
 
-  // ✅ DRAG FIX (SAFE VERSION)
+  // ✅ DRAG WORKING 100%
   const startDrag = (e) => {
     e.preventDefault();
 
@@ -92,13 +100,9 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       if (!ws || !duration) return;
 
       const container = ws.container;
-      if (!container) return;
-
       const rect = container.getBoundingClientRect();
 
-      const x =
-        moveEvent.clientX - rect.left + container.scrollLeft;
-
+      const x = moveEvent.clientX - rect.left + container.scrollLeft;
       const percent = x / (container.scrollWidth || 1);
       const newTime = percent * duration;
 
@@ -114,7 +118,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
         return updated;
       });
 
-      forceRender((n) => n + 1);
+      forceRender(n => n + 1);
     };
 
     const onUp = () => {
@@ -131,14 +135,20 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       
       {/* CONTROLS */}
       <div style={{ marginBottom: 5 }}>
-        Zoom:
-        <input
-          type="range"
-          min="0"
-          max="200"
-          value={zoom}
-          onChange={(e) => handleZoom(e.target.value)}
-        />
+        <button onClick={togglePlay} disabled={!isReady}>
+          {isPlaying ? "⏸ Pause" : "▶️ Preview"}
+        </button>
+
+        <span style={{ marginLeft: 10 }}>
+          Zoom:
+          <input
+            type="range"
+            min="0"
+            max="200"
+            value={zoom}
+            onChange={(e) => handleZoom(e.target.value)}
+          />
+        </span>
       </div>
 
       {/* WAVEFORM */}
