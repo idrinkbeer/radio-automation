@@ -82,7 +82,7 @@ app.post('/playlist/export', (req, res) => {
   const filePath = '/storage/master.m3u';
 
   const content = tracks
-    .map(track => `"${'/storage/music/' + track}"`) // safe for spaces
+    .map(track => `/storage/music/${track}`)
     .join('\n');
 
   fs.writeFileSync(filePath, content);
