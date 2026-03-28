@@ -65,6 +65,13 @@ app.get('/playlist/:name', (req, res) => {
   res.json(JSON.parse(data));
 });
 
+// LIST PLAYLISTS
+setPlaylist((prev) => {
+  const updated = [...prev, track];
+  localStorage.setItem("playlist", JSON.stringify(updated));
+  return updated;
+});
+
   client.on('error', (err) => {
     console.error("Liquidsoap error:", err);
   });
