@@ -1,16 +1,21 @@
 set("log.stdout", true)
 
-# Enable control (keep it for later)
 set("server.telnet", true)
 set("server.telnet.port", 1234)
 set("server.telnet.bind_addr", "0.0.0.0")
 
-# LOOPING PLAYLIST
-radio = playlist(
+# PLAYLIST (fallible)
+p = playlist(
   id="main_playlist",
   reload_mode="watch",
   "/storage/master.m3u"
 )
+
+# MAKE IT SAFE
+radio = fallback([
+  p,
+  blank(duration=5.0)
+])
 
 output.icecast(
   %mp3(bitrate=128, stereo=true),
