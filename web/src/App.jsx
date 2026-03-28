@@ -79,17 +79,12 @@ ws.on("ready", () => {
 
   // ✅ CORRECT POSITION
 const getMarkerPosition = () => {
-  if (!waveRef.current || !duration) return 0;
+  if (!containerRef.current || !duration) return 0;
 
-  const progress = (trackObj.segueStart || 0) / duration;
+  const width = containerRef.current.clientWidth || 1;
+  const percent = (trackObj.segueStart || 0) / duration;
 
-  // use wrapper width instead of scrollWidth
-  const wrapper = waveRef.current.getWrapper();
-  if (!wrapper) return 0;
-
-  const width = wrapper.clientWidth;
-
-  return progress * width;
+  return percent * width;
 };
 
   // ✅ DRAG WORKING 100%
@@ -164,7 +159,7 @@ const startDrag = (e) => {
               position: "absolute",
               left: `${getMarkerPosition()}px`,
               top: 0,
-              width: 6,
+              width: 3,
               height: "100%",
               background: "red",
               cursor: "ew-resize",
