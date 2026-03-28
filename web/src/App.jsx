@@ -11,7 +11,6 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [duration, setDuration] = React.useState(0);
   const [zoom, setZoom] = React.useState(0);
-  const [isDragging, setIsDragging] = React.useState(false);
   const [, forceRender] = React.useState(0);
 
   React.useEffect(() => {
@@ -31,16 +30,18 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       setIsReady(true);
     });
 
-    // CLICK → set segue
-    waveRef.current.on("interaction", () => {
-      const time = waveRef.current.getCurrentTime();
+    // ✅ CLICK TO SET SEGUE (WORKS 100%)
+    waveRef.current.on("click", (progress) => {
+      const newTime = progress * waveRef.current.getDuration();
 
       setPlaylist((prev) => {
         const updated = [...prev];
+
         updated[i] = {
           ...updated[i],
-          segueStart: Math.floor(time)
+          segueStart: Math.floor(newTime)
         };
+
         localStorage.setItem("playlist", JSON.stringify(updated));
         return updated;
       });
@@ -48,7 +49,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       forceRender(n => n + 1);
     });
 
-    // keep marker aligned while scrolling
+    // keep marker aligned when scrolling
     waveRef.current.on("scroll", () => {
       forceRender(n => n + 1);
     });
@@ -70,13 +71,11 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     }
   };
 
-  // ✅ correct marker position
+  // ✅ Marker position (perfect with zoom)
   const getMarkerPosition = () => {
     if (!waveRef.current || !duration) return 0;
 
     const container = waveRef.current.container;
-    if (!container) return 0;
-
     const scrollWidth = container.scrollWidth;
     const scrollLeft = container.scrollLeft;
 
@@ -85,51 +84,24 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     return progress * scrollWidth - scrollLeft;
   };
 
-  // ✅ DRAG LOGIC (container-based)
-const handleMouseDown = (e) => {
-  if (!waveRef.current) return;
+  // ✅ fine adjust buttons
+  const adjustSegue = (amount) => {
+    setPlaylist((prev) => {
+      const updated = [...prev];
 
-  const container = waveRef.current.container;
-  const rect = container.getBoundingClientRect();
+      let newTime = (updated[i].segueStart || 0) + amount;
+      newTime = Math.max(0, Math.min(duration, newTime));
 
-  const clickX = e.clientX - rect.left + container.scrollLeft;
-  const markerX = (trackObj.segueStart || 0) / duration * container.scrollWidth;
+      updated[i] = {
+        ...updated[i],
+        segueStart: Math.floor(newTime)
+      };
 
-  // allow grabbing within 40px
-  if (Math.abs(clickX - markerX) < 40) {
-    setIsDragging(true);
-  }
-};
+      localStorage.setItem("playlist", JSON.stringify(updated));
+      return updated;
+    });
 
-const handleMouseMove = (e) => {
-  if (!isDragging || !waveRef.current) return;
-
-  const container = waveRef.current.container;
-  const rect = container.getBoundingClientRect();
-
-  const x = e.clientX - rect.left + container.scrollLeft;
-  const totalWidth = container.scrollWidth;
-
-  const percent = x / totalWidth;
-  const newTime = percent * duration;
-
-  setPlaylist((prev) => {
-    const updated = [...prev];
-
-    updated[i] = {
-      ...updated[i],
-      segueStart: Math.max(0, Math.floor(newTime))
-    };
-
-    localStorage.setItem("playlist", JSON.stringify(updated));
-    return updated;
-  });
-
-  forceRender(n => n + 1);
-};
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
+    forceRender(n => n + 1);
   };
 
   return (
@@ -151,26 +123,26 @@ const handleMouseMove = (e) => {
             onChange={(e) => handleZoom(e.target.value)}
           />
         </span>
+
+        {/* 🔧 fine adjust */}
+        <span style={{ marginLeft: 15 }}>
+          <button onClick={() => adjustSegue(-1)}>-1s</button>
+          <button onClick={() => adjustSegue(1)}>+1s</button>
+        </span>
       </div>
 
-      {/* WAVEFORM + DRAG */}
-      <div
-        style={{ position: "relative" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
+      {/* WAVEFORM */}
+      <div style={{ position: "relative" }}>
         <div ref={containerRef} />
 
-        {/* 🔴 MARKER */}
+        {/* 🔴 SEGUE MARKER */}
         {duration > 0 && (
           <div
             style={{
               position: "absolute",
               left: `${getMarkerPosition()}px`,
               top: 0,
-              width: 3,
+              width: 6,
               height: "100%",
               background: "red",
               pointerEvents: "none",
