@@ -3,6 +3,7 @@ import WaveSurfer from "wavesurfer.js/dist/wavesurfer.esm.js";
 
 const API = "http://192.99.63.54:3001";
 
+// 🎵 WAVEFORM COMPONENT (FINAL CLEAN VERSION)
 const Waveform = ({ trackObj, i, setPlaylist }) => {
   const containerRef = React.useRef(null);
   const waveRef = React.useRef(null);
@@ -16,7 +17,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   React.useEffect(() => {
     if (!containerRef.current) return;
 
-    // ✅ prevent duplicate instances (fixes white screen)
+    // ✅ prevent duplicate instances (fix white screen)
     if (waveRef.current) {
       waveRef.current.destroy();
     }
@@ -30,44 +31,36 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       url: `http://192.99.63.54:3001/music/${trackObj.file}`
     });
 
-    // ready
+    // ✅ READY
     waveRef.current.on("ready", () => {
       setDuration(waveRef.current.getDuration());
       setIsReady(true);
     });
 
-    // ✅ SAFE CLICK HANDLER (no crashes)
-    waveRef.current.on("interaction", (e) => {
-      if (!waveRef.current || !e) return;
+    // 🎯 SAVE SEGUE WHEN YOU HIT PAUSE
+    waveRef.current.on("pause", () => {
+      if (!waveRef.current) return;
 
-      const ws = waveRef.current;
-      const container = ws.container;
-      const rect = container.getBoundingClientRect();
-
-      const x = e.clientX - rect.left + container.scrollLeft;
-      const totalWidth = container.scrollWidth;
-
-      const percent = x / totalWidth;
-      const newTime = percent * ws.getDuration();
+      const time = waveRef.current.getCurrentTime();
 
       setPlaylist((prev) => {
         const updated = [...prev];
 
         updated[i] = {
           ...updated[i],
-          segueStart: Math.floor(newTime)
+          segueStart: Math.floor(time)
         };
 
         localStorage.setItem("playlist", JSON.stringify(updated));
         return updated;
       });
 
-      forceRender(n => n + 1);
+      forceRender((n) => n + 1);
     });
 
     // keep marker aligned on scroll
     waveRef.current.on("scroll", () => {
-      forceRender(n => n + 1);
+      forceRender((n) => n + 1);
     });
 
     return () => {
@@ -75,10 +68,17 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     };
   }, [trackObj.file]);
 
+  // ✅ CLEAN PLAY CONTROL
   const togglePlay = () => {
     if (!waveRef.current) return;
-    waveRef.current.playPause();
-    setIsPlaying(!isPlaying);
+
+    if (!isPlaying) {
+      waveRef.current.play();
+      setIsPlaying(true);
+    } else {
+      waveRef.current.pause(); // 👈 triggers segue save
+      setIsPlaying(false);
+    }
   };
 
   const handleZoom = (value) => {
@@ -86,11 +86,11 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
 
     if (waveRef.current) {
       waveRef.current.zoom(Number(value));
-      setTimeout(() => forceRender(n => n + 1), 50);
+      setTimeout(() => forceRender((n) => n + 1), 50);
     }
   };
 
-  // ✅ marker always aligned
+  // ✅ MARKER POSITION (ALWAYS CORRECT WITH ZOOM)
   const getMarkerPosition = () => {
     if (!waveRef.current || !duration) return 0;
 
@@ -122,7 +122,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       return updated;
     });
 
-    forceRender(n => n + 1);
+    forceRender((n) => n + 1);
   };
 
   return (
@@ -179,6 +179,8 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
     </div>
   );
 };
+
+
 export default function App() {
   const [tracks, setTracks] = useState([]);
   const [playlist, setPlaylist] = useState([]);
