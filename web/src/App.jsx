@@ -79,21 +79,21 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   };
 
   // ✅ CORRECT MARKER POSITION (FIXES ZOOM ISSUE)
-  const getMarkerPosition = () => {
-    if (!waveRef.current || !duration) return 0;
+const getMarkerPosition = () => {
+  if (!waveRef.current || !duration) return 0;
 
-    const ws = waveRef.current;
-    const drawer = ws.renderer;
+  const ws = waveRef.current;
 
-    if (!drawer) return 0;
+  const container = ws.container;
+  if (!container) return 0;
 
-    const totalWidth = drawer.width;
-    const scrollLeft = ws.container.scrollLeft;
+  const scrollWidth = container.scrollWidth; // total zoomed width
+  const scrollLeft = container.scrollLeft;
 
-    const progress = (trackObj.segueStart || 0) / duration;
+  const progress = (trackObj.segueStart || 0) / duration;
 
-    return progress * totalWidth - scrollLeft;
-  };
+  return progress * scrollWidth - scrollLeft;
+};
 
   return (
     <div style={{ marginTop: 10 }}>
