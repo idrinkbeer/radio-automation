@@ -89,6 +89,36 @@ app.post('/playlist/export', (req, res) => {
   res.json({ success: true });
 });
 
+  const path = require('path');
+
+// EXPORT PLAYLIST → creates master.m3u
+app.post('/playlist/export', (req, res) => {
+  const { tracks } = req.body;
+
+  if (!tracks || !tracks.length) {
+    return res.status(400).json({ error: "No tracks provided" });
+  }
+
+  const filePath = '/storage/master.m3u';
+
+  // ensure folder exists
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const content = tracks
+    .map(track => `/storage/music/${track}`)
+    .join('\n');
+
+  fs.writeFileSync(filePath, content);
+
+  console.log("✅ MASTER PLAYLIST CREATED:");
+  console.log(content);
+
+  res.json({ success: true });
+});
+  
 // LIST PLAYLISTS
 setPlaylist((prev) => {
   const updated = [...prev, track];
