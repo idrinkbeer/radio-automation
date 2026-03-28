@@ -36,7 +36,7 @@ export default function App() {
       body: JSON.stringify({
         tracks: playlist.map(p =>
           typeof p === "string"
-            ? { file: p, cueIn: 0, cueOut: 0, segueStart: 0 }
+            ? { file: p, segueStart: 0 }
             : p
         )
       })
@@ -60,7 +60,6 @@ export default function App() {
   // UPLOAD
   const uploadFiles = async (files) => {
     const formData = new FormData();
-
     for (let i = 0; i < files.length; i++) {
       formData.append("files", files[i]);
     }
@@ -86,15 +85,13 @@ export default function App() {
     e.dataTransfer.setData("track", track);
   };
 
-  // DROP INTO PLAYLIST (SEGUE MODE)
+  // ADD TRACK TO PLAYLIST
   const onDrop = (e) => {
     e.preventDefault();
     const track = e.dataTransfer.getData("track");
 
     const newTrack = {
       file: track,
-      cueIn: 0,
-      cueOut: 0,
       segueStart: 0
     };
 
@@ -179,56 +176,72 @@ export default function App() {
         {playlist.map((item, i) => {
           const trackObj =
             typeof item === "string"
-              ? { file: item, cueIn: 0, cueOut: 0, segueStart: 0 }
+              ? { file: item, segueStart: 0 }
               : item;
+
+          const duration = 300; // placeholder (5 min)
 
           return (
             <div
               key={i}
               style={{
                 padding: 10,
-                marginBottom: 10,
+                marginBottom: 15,
                 background: "#d0f0ff"
               }}
             >
               <div><b>{i + 1}. {trackObj.file}</b></div>
 
-              <div>
-                Cue In: {trackObj.cueIn}s
-                <input
-                  type="range"
-                  min="0"
-                  max="300"
-                  value={trackObj.cueIn}
-                  onChange={(e) => {
-                    const updated = [...playlist];
-                    updated[i] = {
-                      ...trackObj,
-                      cueIn: Number(e.target.value)
-                    };
-                    setPlaylist(updated);
-                    localStorage.setItem("playlist", JSON.stringify(updated));
+              {/* VISUAL SEGUE EDITOR */}
+              <div
+                style={{
+                  position: "relative",
+                  height: 40,
+                  background: "#333",
+                  marginTop: 10,
+                  cursor: "pointer"
+                }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const percent = x / rect.width;
+
+                  const updated = [...playlist];
+                  updated[i] = {
+                    ...trackObj,
+                    segueStart: Math.floor(percent * duration)
+                  };
+
+                  setPlaylist(updated);
+                  localStorage.setItem("playlist", JSON.stringify(updated));
+                }}
+              >
+                {/* FAKE WAVEFORM */}
+                <div
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    background:
+                      "repeating-linear-gradient(90deg, #555, #555 2px, #777 2px, #777 4px)"
+                  }}
+                />
+
+                {/* SEGUE MARKER */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${(trackObj.segueStart / duration) * 100}%`,
+                    top: 0,
+                    width: 3,
+                    height: "100%",
+                    background: "red"
                   }}
                 />
               </div>
 
-              <div>
-                Segue Start: {trackObj.segueStart}s
-                <input
-                  type="range"
-                  min="0"
-                  max="300"
-                  value={trackObj.segueStart}
-                  onChange={(e) => {
-                    const updated = [...playlist];
-                    updated[i] = {
-                      ...trackObj,
-                      segueStart: Number(e.target.value)
-                    };
-                    setPlaylist(updated);
-                    localStorage.setItem("playlist", JSON.stringify(updated));
-                  }}
-                />
+              <div style={{ marginTop: 5 }}>
+                Segue starts at: {trackObj.segueStart}s
               </div>
             </div>
           );
