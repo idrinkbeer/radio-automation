@@ -96,20 +96,15 @@ const getMarkerPosition = () => {
 const startDrag = (e) => {
   e.preventDefault();
 
-  const ws = waveRef.current;
-  if (!ws || !duration) return;
-
-  const container = ws.container;
-
   const onMove = (moveEvent) => {
-    const rect = container.getBoundingClientRect();
+    if (!containerRef.current || !duration) return;
 
-    // ✅ FIXED: no scroll math
+    const rect = containerRef.current.getBoundingClientRect();
+
     const x = moveEvent.clientX - rect.left;
-
     const width = rect.width || 1;
-    const percent = Math.max(0, Math.min(1, x / width));
 
+    const percent = Math.max(0, Math.min(1, x / width));
     const newTime = percent * duration;
 
     setPlaylist((prev) => {
@@ -135,7 +130,7 @@ const startDrag = (e) => {
   window.addEventListener("mousemove", onMove);
   window.addEventListener("mouseup", onUp);
 };
-
+  
   return (
     <div style={{ marginTop: 10 }}>
       
