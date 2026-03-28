@@ -8,6 +8,7 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/music', express.static('/storage/music'));
 
 // =====================
 // FILE UPLOAD SETUP
