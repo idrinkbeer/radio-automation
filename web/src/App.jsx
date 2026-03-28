@@ -16,6 +16,13 @@ export default function App() {
     loadTracks();
   }, []);
 
+  useEffect(() => {
+  const saved = localStorage.getItem("playlist");
+    if (saved) {
+      setPlaylist(JSON.parse(saved));
+    }
+  }, []);
+  
   // MULTI FILE UPLOAD
   const uploadFiles = async (files) => {
     const formData = new FormData();
@@ -49,7 +56,11 @@ export default function App() {
     e.preventDefault();
     const track = e.dataTransfer.getData("track");
 
-    setPlaylist((prev) => [...prev, track]);
+    setPlaylist((prev) => {
+      const updated = [...prev, track];
+      localStorage.setItem("playlist", JSON.stringify(updated));
+      return updated;
+    });
 
     await fetch(`${API}/enqueue`, {
       method: "POST",
