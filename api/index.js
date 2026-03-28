@@ -82,3 +82,8 @@ setPlaylist((prev) => {
 });
 
 app.listen(3000, '0.0.0.0', () => console.log('API running'));
+
+app.get('/debug/files', (req, res) => {
+  const files = fs.readdirSync('/storage');
+  res.json(files);
+});
