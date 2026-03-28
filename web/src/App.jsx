@@ -81,10 +81,19 @@ ws.on("ready", () => {
 const getMarkerPosition = () => {
   if (!containerRef.current || !duration) return 0;
 
-  const width = containerRef.current.clientWidth || 1;
+  const container = containerRef.current;
+
+  const totalWidth = container.scrollWidth || 1; // full waveform (zoomed)
+  const visibleWidth = container.clientWidth || 1;
+  const scrollLeft = container.scrollLeft || 0;
+
   const percent = (trackObj.segueStart || 0) / duration;
 
-  return percent * width;
+  // position in full waveform minus scroll offset
+  const x = percent * totalWidth - scrollLeft;
+
+  // clamp inside visible area
+  return Math.max(0, Math.min(visibleWidth, x));
 };
 
   // ✅ DRAG WORKING 100%
@@ -96,10 +105,16 @@ const startDrag = (e) => {
 
     const rect = containerRef.current.getBoundingClientRect();
 
-    const x = moveEvent.clientX - rect.left;
-    const width = rect.width || 1;
+const container = containerRef.current;
 
-    const percent = Math.max(0, Math.min(1, x / width));
+const rect = container.getBoundingClientRect();
+
+const x =
+  moveEvent.clientX - rect.left + container.scrollLeft;
+
+const totalWidth = container.scrollWidth || 1;
+
+const percent = Math.max(0, Math.min(1, x / totalWidth));
     const newTime = percent * duration;
 
     setPlaylist((prev) => {
