@@ -9,7 +9,6 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const waveRef = React.useRef(null);
 
   const [isReady, setIsReady] = React.useState(false);
-  const [isPlaying, setIsPlaying] = React.useState(false);
   const [duration, setDuration] = React.useState(0);
   const [zoom, setZoom] = React.useState(0);
   const [, forceRender] = React.useState(0);
@@ -17,10 +16,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   React.useEffect(() => {
     if (!containerRef.current) return;
 
-    // ✅ prevent duplicate instances (fix white screen)
-    if (waveRef.current) {
-      waveRef.current.destroy();
-    }
+    if (waveRef.current) waveRef.current.destroy();
 
     waveRef.current = WaveSurfer.create({
       container: containerRef.current,
@@ -31,24 +27,73 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       url: `http://192.99.63.54:3001/music/${trackObj.file}`
     });
 
-    // ✅ READY
     waveRef.current.on("ready", () => {
-      setDuration(waveRef.current.getDuration());
+      const dur = waveRef.current.getDuration();
+      setDuration(dur);
       setIsReady(true);
+
+      // ✅ DEFAULT SEGUE NEAR END (if not set)
+      if (!trackObj.segueStart) {
+        setPlaylist((prev) => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            segueStart: Math.floor(dur - 5) // 5 sec from end
+          };
+          return updated;
+        });
+      }
     });
 
-    // 🎯 SAVE SEGUE WHEN YOU HIT PAUSE
-    waveRef.current.on("pause", () => {
-      if (!waveRef.current) return;
+    waveRef.current.on("scroll", () => {
+      forceRender((n) => n + 1);
+    });
 
-      const time = waveRef.current.getCurrentTime();
+    return () => waveRef.current?.destroy();
+  }, [trackObj.file]);
+
+  const handleZoom = (value) => {
+    setZoom(value);
+    waveRef.current?.zoom(Number(value));
+    setTimeout(() => forceRender((n) => n + 1), 50);
+  };
+
+  // ✅ CORRECT POSITION WITH ZOOM + SCROLL
+  const getMarkerPosition = () => {
+    if (!waveRef.current || !duration) return 0;
+
+    const container = waveRef.current.container;
+    const totalWidth = container.scrollWidth;
+    const scrollLeft = container.scrollLeft;
+
+    const percent = (trackObj.segueStart || 0) / duration;
+
+    return percent * totalWidth - scrollLeft;
+  };
+
+  // ✅ DRAG HANDLER (THIS FIXES YOUR ISSUE)
+  const startDrag = (e) => {
+    e.preventDefault();
+
+    const onMove = (moveEvent) => {
+      const ws = waveRef.current;
+      if (!ws) return;
+
+      const container = ws.container;
+      const rect = container.getBoundingClientRect();
+
+      const x =
+        moveEvent.clientX - rect.left + container.scrollLeft;
+
+      const percent = x / container.scrollWidth;
+      const newTime = percent * duration;
 
       setPlaylist((prev) => {
         const updated = [...prev];
 
         updated[i] = {
           ...updated[i],
-          segueStart: Math.floor(time)
+          segueStart: Math.max(0, Math.min(duration, newTime))
         };
 
         localStorage.setItem("playlist", JSON.stringify(updated));
@@ -56,73 +101,15 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       });
 
       forceRender((n) => n + 1);
-    });
-
-    // keep marker aligned on scroll
-    waveRef.current.on("scroll", () => {
-      forceRender((n) => n + 1);
-    });
-
-    return () => {
-      if (waveRef.current) waveRef.current.destroy();
     };
-  }, [trackObj.file]);
 
-  // ✅ CLEAN PLAY CONTROL
-  const togglePlay = () => {
-    if (!waveRef.current) return;
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
 
-    if (!isPlaying) {
-      waveRef.current.play();
-      setIsPlaying(true);
-    } else {
-      waveRef.current.pause(); // 👈 triggers segue save
-      setIsPlaying(false);
-    }
-  };
-
-  const handleZoom = (value) => {
-    setZoom(value);
-
-    if (waveRef.current) {
-      waveRef.current.zoom(Number(value));
-      setTimeout(() => forceRender((n) => n + 1), 50);
-    }
-  };
-
-  // ✅ MARKER POSITION (ALWAYS CORRECT WITH ZOOM)
-  const getMarkerPosition = () => {
-    if (!waveRef.current || !duration) return 0;
-
-    const container = waveRef.current.container;
-    if (!container) return 0;
-
-    const scrollWidth = container.scrollWidth;
-    const scrollLeft = container.scrollLeft;
-
-    const progress = (trackObj.segueStart || 0) / duration;
-
-    return progress * scrollWidth - scrollLeft;
-  };
-
-  // fine adjust
-  const adjustSegue = (amount) => {
-    setPlaylist((prev) => {
-      const updated = [...prev];
-
-      let newTime = (updated[i].segueStart || 0) + amount;
-      newTime = Math.max(0, Math.min(duration, newTime));
-
-      updated[i] = {
-        ...updated[i],
-        segueStart: Math.floor(newTime)
-      };
-
-      localStorage.setItem("playlist", JSON.stringify(updated));
-      return updated;
-    });
-
-    forceRender((n) => n + 1);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   return (
@@ -130,43 +117,32 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       
       {/* CONTROLS */}
       <div style={{ marginBottom: 5 }}>
-        <button onClick={togglePlay} disabled={!isReady}>
-          {isPlaying ? "⏸ Pause" : "▶️ Play"}
-        </button>
-
-        <span style={{ marginLeft: 10 }}>
-          Zoom:
-          <input
-            type="range"
-            min="0"
-            max="200"
-            value={zoom}
-            onChange={(e) => handleZoom(e.target.value)}
-          />
-        </span>
-
-        {/* fine adjust */}
-        <span style={{ marginLeft: 15 }}>
-          <button onClick={() => adjustSegue(-1)}>-1s</button>
-          <button onClick={() => adjustSegue(1)}>+1s</button>
-        </span>
+        Zoom:
+        <input
+          type="range"
+          min="0"
+          max="200"
+          value={zoom}
+          onChange={(e) => handleZoom(e.target.value)}
+        />
       </div>
 
       {/* WAVEFORM */}
       <div style={{ position: "relative" }}>
         <div ref={containerRef} />
 
-        {/* 🔴 SEGUE MARKER */}
+        {/* 🔴 DRAGGABLE SEGUE MARKER */}
         {duration > 0 && (
           <div
+            onMouseDown={startDrag}
             style={{
               position: "absolute",
               left: `${getMarkerPosition()}px`,
               top: 0,
-              width: 6,
+              width: 8,
               height: "100%",
               background: "red",
-              pointerEvents: "none",
+              cursor: "ew-resize",
               zIndex: 10
             }}
           />
@@ -174,7 +150,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       </div>
 
       <div style={{ marginTop: 5 }}>
-        Segue: {trackObj.segueStart || 0}s
+        Segue point: {Math.floor(trackObj.segueStart || 0)}s
       </div>
     </div>
   );
