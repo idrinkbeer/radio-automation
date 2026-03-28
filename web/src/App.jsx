@@ -270,8 +270,7 @@ export default function App() {
     const track = e.dataTransfer.getData("track");
 
     const newTrack = {
-      file: track,
-      segueStart: 0
+      file: track
     };
 
     setPlaylist((prev) => {
