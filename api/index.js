@@ -45,6 +45,26 @@ app.post('/enqueue', (req, res) => {
     client.end();
   });
 
+  // SAVE PLAYLIST
+app.post('/playlist/save', (req, res) => {
+  const { name, tracks } = req.body;
+
+  fs.writeFileSync(
+    `/storage/${name}.json`,
+    JSON.stringify(tracks, null, 2)
+  );
+
+  res.json({ success: true });
+});
+
+// LOAD PLAYLIST
+app.get('/playlist/:name', (req, res) => {
+  const name = req.params.name;
+
+  const data = fs.readFileSync(`/storage/${name}.json`);
+  res.json(JSON.parse(data));
+});
+
   client.on('error', (err) => {
     console.error("Liquidsoap error:", err);
   });
