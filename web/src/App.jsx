@@ -93,44 +93,48 @@ const getMarkerPosition = () => {
 };
 
   // ✅ DRAG WORKING 100%
-  const startDrag = (e) => {
-    e.preventDefault();
+const startDrag = (e) => {
+  e.preventDefault();
 
-    const onMove = (moveEvent) => {
-      const ws = waveRef.current;
-      if (!ws || !duration) return;
+  const ws = waveRef.current;
+  if (!ws || !duration) return;
 
-      const container = ws.container;
-      const rect = container.getBoundingClientRect();
+  const container = ws.container;
 
-      const x = moveEvent.clientX - rect.left + container.scrollLeft;
-      const width = container.clientWidth || 1;
-      const percent = x / width;
-      const newTime = percent * duration;
+  const onMove = (moveEvent) => {
+    const rect = container.getBoundingClientRect();
 
-      setPlaylist((prev) => {
-        const updated = [...prev];
+    // ✅ FIXED: no scroll math
+    const x = moveEvent.clientX - rect.left;
 
-        updated[i] = {
-          ...updated[i],
-          segueStart: Math.max(0, Math.min(duration, newTime))
-        };
+    const width = rect.width || 1;
+    const percent = Math.max(0, Math.min(1, x / width));
 
-        localStorage.setItem("playlist", JSON.stringify(updated));
-        return updated;
-      });
+    const newTime = percent * duration;
 
-      forceRender(n => n + 1);
-    };
+    setPlaylist((prev) => {
+      const updated = [...prev];
 
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
+      updated[i] = {
+        ...updated[i],
+        segueStart: Math.floor(newTime)
+      };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+      localStorage.setItem("playlist", JSON.stringify(updated));
+      return updated;
+    });
+
+    forceRender((n) => n + 1);
   };
+
+  const onUp = () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+  };
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+};
 
   return (
     <div style={{ marginTop: 10 }}>
