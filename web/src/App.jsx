@@ -28,6 +28,18 @@ export default function App() {
     localStorage.setItem("playlist", JSON.stringify(data));
   };
 
+const playPlaylist = async () => {
+  await fetch(`${API}/playlist/export`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ tracks: playlist })
+  });
+
+  alert("Playlist sent to automation!");
+};
+
 useEffect(() => {
   loadTracks();
   loadSavedPlaylists();
@@ -158,6 +170,7 @@ useEffect(() => {
           ))}
         </select>
         <button onClick={savePlaylist}>💾 Save Playlist</button>
+        <button onClick={playPlaylist}>▶️ Play Playlist</button>
 
         {playlist.map((track, i) => (
           <div
