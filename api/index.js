@@ -150,3 +150,12 @@ app.get('/debug/m3u', (req, res) => {
   const content = fs.readFileSync('/storage/master.m3u', 'utf-8');
   res.send(content);
 });
+
+app.get('/debug/music', (req, res) => {
+  try {
+    const files = fs.readdirSync('/storage/music');
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
