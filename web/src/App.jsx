@@ -85,15 +85,22 @@ useEffect(() => {
     e.dataTransfer.setData("track", track);
   };
 
-  const onDrop = async (e) => {
-    e.preventDefault();
-    const track = e.dataTransfer.getData("track");
+const onDrop = async (e) => {
+  e.preventDefault();
+  const track = e.dataTransfer.getData("track");
 
-    setPlaylist((prev) => {
-      const updated = [...prev, track];
-      localStorage.setItem("playlist", JSON.stringify(updated));
-      return updated;
-    });
+  const newTrack = {
+    file: track,
+    fadeIn: 2,
+    fadeOut: 2
+  };
+
+  setPlaylist((prev) => {
+    const updated = [...prev, newTrack];
+    localStorage.setItem("playlist", JSON.stringify(updated));
+    return updated;
+  });
+};
 
     await fetch(`${API}/enqueue`, {
       method: "POST",
@@ -172,18 +179,64 @@ useEffect(() => {
         <button onClick={savePlaylist}>💾 Save Playlist</button>
         <button onClick={playPlaylist}>▶️ Play Playlist</button>
 
-        {playlist.map((track, i) => (
-          <div
-            key={i}
-            style={{
-              padding: 10,
-              marginBottom: 5,
-              background: "#d0f0ff"
-            }}
-          >
-            {i + 1}. {track}
-          </div>
-        ))}
+{playlist.map((item, i) => {
+  // backward compatibility (old playlists)
+  const trackObj =
+    typeof item === "string"
+      ? { file: item, fadeIn: 2, fadeOut: 2 }
+      : item;
+
+  return (
+    <div
+      key={i}
+      style={{
+        padding: 10,
+        marginBottom: 10,
+        background: "#d0f0ff"
+      }}
+    >
+      <div><b>{i + 1}. {trackObj.file}</b></div>
+
+      <div>
+        Fade In: {trackObj.fadeIn}s
+        <input
+          type="range"
+          min="0"
+          max="10"
+          value={trackObj.fadeIn}
+          onChange={(e) => {
+            const updated = [...playlist];
+            updated[i] = {
+              ...trackObj,
+              fadeIn: Number(e.target.value)
+            };
+            setPlaylist(updated);
+            localStorage.setItem("playlist", JSON.stringify(updated));
+          }}
+        />
+      </div>
+
+      <div>
+        Fade Out: {trackObj.fadeOut}s
+        <input
+          type="range"
+          min="0"
+          max="10"
+          value={trackObj.fadeOut}
+          onChange={(e) => {
+            const updated = [...playlist];
+            updated[i] = {
+              ...trackObj,
+              fadeOut: Number(e.target.value)
+            };
+            setPlaylist(updated);
+            localStorage.setItem("playlist", JSON.stringify(updated));
+          }}
+        />
+      </div>
+    </div>
+  );
+})}
       </div>
     </div>
   );
