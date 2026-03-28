@@ -4,16 +4,13 @@ set("server.telnet", true)
 set("server.telnet.port", 1234)
 set("server.telnet.bind_addr", "0.0.0.0")
 
-# PLAYLIST (fallible)
-p = playlist(
-  id="main_playlist",
-  reload_mode="watch",
-  "/storage/master.m3u"
-)
-
-# MAKE IT SAFE
+# SAFE PLAYLIST
 radio = fallback([
-  p,
+  playlist(
+    id="main_playlist",
+    reload_mode="watch",
+    "/storage/master.m3u"
+  ),
   blank(duration=5.0)
 ])
 
@@ -23,9 +20,6 @@ output.icecast(
   port=8000,
   password="hackme",
   mount="/stream",
-  name="Radio X",
-  description="Eclectic online rock radio",
-  url="https://usradiox.com",
-  genre="Eclectic rock",
+  name="My Radio Station",
   radio
 )
