@@ -33,24 +33,25 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
 
     waveRef.current = ws;
 
-    ws.on("ready", () => {
-      const dur = ws.getDuration();
-      setDuration(dur);
-      setIsReady(true);
+ws.on("ready", () => {
+  const dur = ws.getDuration();
+  setDuration(dur);
+  setIsReady(true);
 
-      // ✅ FIX: only set if UNDEFINED (not 0)
-      if (trackObj.segueStart === undefined) {
-        setPlaylist((prev) => {
-          const updated = [...prev];
-          updated[i] = {
-            ...updated[i],
-            segueStart: Math.max(0, Math.floor(dur - 5)) // end of track
-          };
-          localStorage.setItem("playlist", JSON.stringify(updated));
-          return updated;
-        });
-      }
+  // ✅ FORCE DEFAULT TO END
+  if (trackObj.segueStart == null || trackObj.segueStart === 0) {
+    setPlaylist((prev) => {
+      const updated = [...prev];
+      updated[i] = {
+        ...updated[i],
+        segueStart: Math.max(0, Math.floor(dur - 5))
+      };
+
+      localStorage.setItem("playlist", JSON.stringify(updated));
+      return updated;
     });
+  }
+});
 
     ws.on("scroll", () => forceRender(n => n + 1));
 
