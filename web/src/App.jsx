@@ -101,20 +101,19 @@ const startDrag = (e) => {
   e.preventDefault();
 
   const onMove = (moveEvent) => {
-    if (!containerRef.current || !duration) return;
+    const container = containerRef.current;
+    if (!container || !duration) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
+    // ✅ ONLY ONE rect
+    const rect = container.getBoundingClientRect();
 
-const container = containerRef.current;
+    // ✅ correct for zoom + scroll
+    const x =
+      moveEvent.clientX - rect.left + container.scrollLeft;
 
-const rect = container.getBoundingClientRect();
+    const totalWidth = container.scrollWidth || 1;
 
-const x =
-  moveEvent.clientX - rect.left + container.scrollLeft;
-
-const totalWidth = container.scrollWidth || 1;
-
-const percent = Math.max(0, Math.min(1, x / totalWidth));
+    const percent = Math.max(0, Math.min(1, x / totalWidth));
     const newTime = percent * duration;
 
     setPlaylist((prev) => {
