@@ -12,6 +12,27 @@ export default function App() {
     setTracks(data);
   };
 
+  const [savedPlaylists, setSavedPlaylists] = useState([]);
+
+  const loadSavedPlaylists = async () => {
+    const res = await fetch(`${API}/playlists`);
+    const data = await res.json();
+    setSavedPlaylists(data);
+  };
+
+  const loadPlaylist = async (name) => {
+    const res = await fetch(`${API}/playlist/${name}`);
+    const data = await res.json();
+
+    setPlaylist(data);
+    localStorage.setItem("playlist", JSON.stringify(data));
+  };
+
+useEffect(() => {
+  loadTracks();
+  loadSavedPlaylists();
+}, []);
+  
   useEffect(() => {
     loadTracks();
   }, []);
@@ -130,6 +151,12 @@ export default function App() {
         onDrop={onDrop}
       >
         <h2>📻 Playlist</h2>
+        <select onChange={(e) => loadPlaylist(e.target.value)}>
+          <option value="">Load Playlist</option>
+          {savedPlaylists.map((name, i) => (
+            <option key={i} value={name}>{name}</option>
+          ))}
+        </select>
         <button onClick={savePlaylist}>💾 Save Playlist</button>
 
         {playlist.map((track, i) => (
