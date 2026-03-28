@@ -60,6 +60,24 @@ export default function App() {
     });
   };
 
+  const savePlaylist = async () => {
+  const name = prompt("Playlist name?");
+  if (!name) return;
+
+  await fetch(`${API}/playlist/save`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      tracks: playlist
+    })
+  });
+
+  alert("Saved!");
+};
+
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       
