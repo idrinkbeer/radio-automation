@@ -111,3 +111,12 @@ app.get('/debug/files', (req, res) => {
   const files = fs.readdirSync('/storage');
   res.json(files);
 });
+
+app.get('/debug/m3u', (req, res) => {
+  if (!fs.existsSync('/storage/master.m3u')) {
+    return res.send("NO FILE");
+  }
+
+  const content = fs.readFileSync('/storage/master.m3u', 'utf-8');
+  res.send(content);
+});
