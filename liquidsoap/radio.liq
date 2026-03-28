@@ -1,20 +1,16 @@
 set("log.stdout", true)
 
-# Enable TCP control server (NOT unix socket)
+# Enable control (keep it for later)
 set("server.telnet", true)
 set("server.telnet.port", 1234)
 set("server.telnet.bind_addr", "0.0.0.0")
 
-# IMPORTANT: disable socket mode
-set("server.socket", false)
-
-# Queue
-q = request.queue(id="radio_queue")
-
-radio = fallback([
-  q,
-  blank(duration=5.0)
-])
+# LOOPING PLAYLIST
+radio = playlist(
+  id="main_playlist",
+  reload_mode="watch",
+  "/storage/master.m3u"
+)
 
 output.icecast(
   %mp3(bitrate=128, stereo=true),
