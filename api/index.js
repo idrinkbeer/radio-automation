@@ -37,7 +37,8 @@ app.post('/enqueue', (req, res) => {
   const client = new net.Socket();
 
   client.connect(1234, 'liquidsoap', () => {
-    const command = `radio_queue.push /storage/music/${track}\n`;
+    const command = `radio_queue.push annotate:title="${track}":/storage/music/${track}\n`;
+
     console.log("Sending command:", command);
 
     client.write(command);
