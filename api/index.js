@@ -2,12 +2,16 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const cors = require('cors');
+const net = require('net');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Store with original filenames
+// =====================
+// FILE UPLOAD SETUP
+// =====================
 const storage = multer.diskStorage({
   destination: '/storage/music',
   filename: (req, file, cb) => {
@@ -17,7 +21,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// MULTI UPLOAD
+// =====================
+// ROUTES
+// =====================
+
+// UPLOAD
 app.post('/upload', upload.array('files'), (req, res) => {
   res.json({ success: true, files: req.files });
 });
@@ -28,35 +36,22 @@ app.get('/tracks', (req, res) => {
   res.json(files);
 });
 
-// ENQUEUE
-const net = require('net');
+// =====================
+// PLAYLIST MANAGEMENT
+// =====================
 
-app.post('/enqueue', (req, res) => {
-  const track = req.body.track;
-
-  const client = new net.Socket();
-
-  client.connect(1234, 'liquidsoap', () => {
-    const command = `radio_queue.push annotate:title="${track}":/storage/music/${track}\n`;
-
-    console.log("Sending command:", command);
-
-    client.write(command);
-    client.end();
-  });
-
-  // LIST PLAYLISTS
+// LIST PLAYLISTS
 app.get('/playlists', (req, res) => {
   const files = fs.readdirSync('/storage');
 
   const playlists = files
-    .filter(f => f.endsWith('.json'))   // only JSON files
-    .map(f => f.replace('.json', ''));  // remove extension
+    .filter(f => f.endsWith('.json'))
+    .map(f => f.replace('.json', ''));
 
   res.json(playlists);
 });
-  
-  // SAVE PLAYLIST
+
+// SAVE PLAYLIST
 app.post('/playlist/save', (req, res) => {
   const { name, tracks } = req.body;
 
@@ -76,21 +71,6 @@ app.get('/playlist/:name', (req, res) => {
   res.json(JSON.parse(data));
 });
 
-// EXPORT PLAYLIST
-app.post('/playlist/export', (req, res) => {
-  const { tracks } = req.body;
-
-  const content = tracks
-    .map(track => `/storage/music/${track}`)
-    .join('\n');
-
-  fs.writeFileSync('/storage/master.m3u', content);
-
-  res.json({ success: true });
-});
-
-  const path = require('path');
-
 // EXPORT PLAYLIST → creates master.m3u
 app.post('/playlist/export', (req, res) => {
   const { tracks } = req.body;
@@ -101,14 +81,8 @@ app.post('/playlist/export', (req, res) => {
 
   const filePath = '/storage/master.m3u';
 
-  // ensure folder exists
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
   const content = tracks
-    .map(track => `/storage/music/${track}`)
+    .map(track => `"${'/storage/music/' + track}"`) // safe for spaces
     .join('\n');
 
   fs.writeFileSync(filePath, content);
@@ -118,13 +92,23 @@ app.post('/playlist/export', (req, res) => {
 
   res.json({ success: true });
 });
-  
-// LIST PLAYLISTS
-setPlaylist((prev) => {
-  const updated = [...prev, track];
-  localStorage.setItem("playlist", JSON.stringify(updated));
-  return updated;
-});
+
+// =====================
+// (OPTIONAL) ENQUEUE (OLD SYSTEM)
+// =====================
+app.post('/enqueue', (req, res) => {
+  const track = req.body.track;
+
+  const client = new net.Socket();
+
+  client.connect(1234, 'liquidsoap', () => {
+    const command = `radio_queue.push annotate:title="${track}":/storage/music/${track}\n`;
+
+    console.log("Sending command:", command);
+
+    client.write(command);
+    client.end();
+  });
 
   client.on('error', (err) => {
     console.error("Liquidsoap error:", err);
@@ -135,12 +119,9 @@ setPlaylist((prev) => {
   res.json({ success: true });
 });
 
-app.listen(3000, '0.0.0.0', () => console.log('API running'));
-
-app.get('/debug/files', (req, res) => {
-  const files = fs.readdirSync('/storage');
-  res.json(files);
-});
+// =====================
+// DEBUG ROUTES
+// =====================
 
 app.get('/debug/m3u', (req, res) => {
   if (!fs.existsSync('/storage/master.m3u')) {
@@ -159,3 +140,9 @@ app.get('/debug/music', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// =====================
+// START SERVER
+// =====================
+
+app.listen(3000, '0.0.0.0', () => console.log('API running'));
