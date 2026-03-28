@@ -17,10 +17,14 @@ radio = fallback([
 ])
 
 output.icecast(
-  %mp3,
+  %mp3(bitrate=128, stereo=true),
   host="icecast",
   port=8000,
   password="hackme",
   mount="/stream",
+  name="Radio X",
+  description="Eclectic online rock radio",
+  url="https://usradiox.com",
+  genre="Eclectic rock",
   radio
 )
