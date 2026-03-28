@@ -3,7 +3,6 @@ import WaveSurfer from "wavesurfer.js/dist/wavesurfer.esm.js";
 
 const API = "http://192.99.63.54:3001";
 
-// 🎵 WAVEFORM COMPONENT
 const Waveform = ({ trackObj, i, setPlaylist }) => {
   const containerRef = React.useRef(null);
   const waveRef = React.useRef(null);
@@ -12,8 +11,8 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [duration, setDuration] = React.useState(0);
   const [zoom, setZoom] = React.useState(0);
-  const [, forceRender] = React.useState(0); // used to re-render marker
   const [isDragging, setIsDragging] = React.useState(false);
+  const [, forceRender] = React.useState(0);
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -32,33 +31,29 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       setIsReady(true);
     });
 
-    // ✅ SAVE SEGUE (FIXED)
+    // CLICK → set segue
     waveRef.current.on("interaction", () => {
       const time = waveRef.current.getCurrentTime();
 
       setPlaylist((prev) => {
         const updated = [...prev];
-
         updated[i] = {
           ...updated[i],
           segueStart: Math.floor(time)
         };
-
         localStorage.setItem("playlist", JSON.stringify(updated));
         return updated;
       });
 
-      forceRender((n) => n + 1); // update marker immediately
+      forceRender(n => n + 1);
     });
 
-    // ✅ update marker when scrolling
+    // keep marker aligned while scrolling
     waveRef.current.on("scroll", () => {
-      forceRender((n) => n + 1);
+      forceRender(n => n + 1);
     });
 
-    return () => {
-      if (waveRef.current) waveRef.current.destroy();
-    };
+    return () => waveRef.current.destroy();
   }, []);
 
   const togglePlay = () => {
@@ -69,32 +64,66 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
 
   const handleZoom = (value) => {
     setZoom(value);
-
     if (waveRef.current) {
       waveRef.current.zoom(Number(value));
-
-      setTimeout(() => {
-        forceRender((n) => n + 1); // re-align marker after zoom
-      }, 50);
+      setTimeout(() => forceRender(n => n + 1), 50);
     }
   };
 
-  // ✅ CORRECT MARKER POSITION (FIXES ZOOM ISSUE)
-const getMarkerPosition = () => {
-  if (!waveRef.current || !duration) return 0;
+  // ✅ correct marker position
+  const getMarkerPosition = () => {
+    if (!waveRef.current || !duration) return 0;
 
-  const ws = waveRef.current;
+    const container = waveRef.current.container;
+    if (!container) return 0;
 
-  const container = ws.container;
-  if (!container) return 0;
+    const scrollWidth = container.scrollWidth;
+    const scrollLeft = container.scrollLeft;
 
-  const scrollWidth = container.scrollWidth; // total zoomed width
-  const scrollLeft = container.scrollLeft;
+    const progress = (trackObj.segueStart || 0) / duration;
 
-  const progress = (trackObj.segueStart || 0) / duration;
+    return progress * scrollWidth - scrollLeft;
+  };
 
-  return progress * scrollWidth - scrollLeft;
-};
+  // ✅ DRAG LOGIC (container-based)
+  const handleMouseDown = (e) => {
+    const markerX = getMarkerPosition();
+    const clickX = e.nativeEvent.offsetX;
+
+    // only start drag if clicking near marker
+    if (Math.abs(clickX - markerX) < 15) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !waveRef.current) return;
+
+    const container = waveRef.current.container;
+    const rect = container.getBoundingClientRect();
+
+    const x = e.clientX - rect.left + container.scrollLeft;
+    const totalWidth = container.scrollWidth;
+
+    const percent = x / totalWidth;
+    const newTime = percent * duration;
+
+    setPlaylist((prev) => {
+      const updated = [...prev];
+      updated[i] = {
+        ...updated[i],
+        segueStart: Math.max(0, Math.floor(newTime))
+      };
+      localStorage.setItem("playlist", JSON.stringify(updated));
+      return updated;
+    });
+
+    forceRender(n => n + 1);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   return (
     <div style={{ marginTop: 10 }}>
@@ -117,61 +146,30 @@ const getMarkerPosition = () => {
         </span>
       </div>
 
-      {/* WAVEFORM */}
-      <div style={{ position: "relative" }}>
+      {/* WAVEFORM + DRAG */}
+      <div
+        style={{ position: "relative" }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         <div ref={containerRef} />
 
-        {/* 🔴 PERFECTLY ALIGNED MARKER */}
+        {/* 🔴 MARKER */}
         {duration > 0 && (
-<div
-  style={{
-    position: "absolute",
-    left: `${getMarkerPosition()}px`,
-    top: 0,
-    width: 6,
-    height: "100%",
-    background: "red",
-    pointerEvents: "none", // 👈 IMPORTANT
-    zIndex: 10
-  }}
-  onMouseDown={(e) => {
-    e.preventDefault();
-
-    const onMove = (moveEvent) => {
-      const ws = waveRef.current;
-      if (!ws) return;
-
-      const container = ws.container;
-      const rect = container.getBoundingClientRect();
-
-      const x = moveEvent.clientX - rect.left + container.scrollLeft;
-      const totalWidth = container.scrollWidth;
-
-      const percent = x / totalWidth;
-      const newTime = percent * duration;
-
-      setPlaylist((prev) => {
-        const updated = [...prev];
-
-        updated[i] = {
-          ...updated[i],
-          segueStart: Math.max(0, Math.floor(newTime))
-        };
-
-        localStorage.setItem("playlist", JSON.stringify(updated));
-        return updated;
-      });
-    };
-
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }}
-/>
+          <div
+            style={{
+              position: "absolute",
+              left: `${getMarkerPosition()}px`,
+              top: 0,
+              width: 6,
+              height: "100%",
+              background: "red",
+              pointerEvents: "none",
+              zIndex: 10
+            }}
+          />
         )}
       </div>
 
