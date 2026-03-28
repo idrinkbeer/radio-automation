@@ -119,6 +119,7 @@ export default function App() {
         onDrop={onDrop}
       >
         <h2>📻 Playlist</h2>
+        <button onClick={savePlaylist}>💾 Save Playlist</button>
 
         {playlist.map((track, i) => (
           <div
