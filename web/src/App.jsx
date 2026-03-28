@@ -5,87 +5,101 @@ const API = "http://192.99.63.54:3001";
 
 // 🎵 WAVEFORM COMPONENT (FINAL CLEAN VERSION)
 const Waveform = ({ trackObj, i, setPlaylist }) => {
-  const containerRef = React.useRef(null);
-  const waveRef = React.useRef(null);
+  const containerRef = useRef(null);
+  const waveRef = useRef(null);
 
-  const [isReady, setIsReady] = React.useState(false);
-  const [duration, setDuration] = React.useState(0);
-  const [zoom, setZoom] = React.useState(0);
-  const [, forceRender] = React.useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [zoom, setZoom] = useState(0);
+  const [, forceRender] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!containerRef.current) return;
 
-    if (waveRef.current) waveRef.current.destroy();
+    // destroy safely
+    if (waveRef.current) {
+      waveRef.current.destroy();
+      waveRef.current = null;
+    }
 
-    waveRef.current = WaveSurfer.create({
+    const ws = WaveSurfer.create({
       container: containerRef.current,
       waveColor: "#777",
       progressColor: "#00bcd4",
       cursorColor: "yellow",
       height: 80,
-      url: `http://192.99.63.54:3001/music/${trackObj.file}`
+      url: `${API}/music/${trackObj.file}`
     });
 
-    waveRef.current.on("ready", () => {
-      const dur = waveRef.current.getDuration();
+    waveRef.current = ws;
+
+    ws.on("ready", () => {
+      const dur = ws.getDuration();
       setDuration(dur);
       setIsReady(true);
 
-      // ✅ DEFAULT SEGUE NEAR END (if not set)
+      // ✅ set default segue near END
       if (!trackObj.segueStart) {
         setPlaylist((prev) => {
           const updated = [...prev];
           updated[i] = {
             ...updated[i],
-            segueStart: Math.floor(dur - 5) // 5 sec from end
+            segueStart: Math.max(0, Math.floor(dur - 5))
           };
           return updated;
         });
       }
     });
 
-    waveRef.current.on("scroll", () => {
+    ws.on("scroll", () => {
       forceRender((n) => n + 1);
     });
 
-    return () => waveRef.current?.destroy();
+    return () => {
+      ws.destroy();
+    };
   }, [trackObj.file]);
 
   const handleZoom = (value) => {
     setZoom(value);
-    waveRef.current?.zoom(Number(value));
-    setTimeout(() => forceRender((n) => n + 1), 50);
+    if (waveRef.current) {
+      waveRef.current.zoom(Number(value));
+      setTimeout(() => forceRender((n) => n + 1), 50);
+    }
   };
 
-  // ✅ CORRECT POSITION WITH ZOOM + SCROLL
+  // ✅ SAFE marker position
   const getMarkerPosition = () => {
     if (!waveRef.current || !duration) return 0;
 
     const container = waveRef.current.container;
-    const totalWidth = container.scrollWidth;
-    const scrollLeft = container.scrollLeft;
+    if (!container) return 0;
+
+    const totalWidth = container.scrollWidth || 1;
+    const scrollLeft = container.scrollLeft || 0;
 
     const percent = (trackObj.segueStart || 0) / duration;
 
     return percent * totalWidth - scrollLeft;
   };
 
-  // ✅ DRAG HANDLER (THIS FIXES YOUR ISSUE)
+  // ✅ DRAG FIX (SAFE VERSION)
   const startDrag = (e) => {
     e.preventDefault();
 
     const onMove = (moveEvent) => {
       const ws = waveRef.current;
-      if (!ws) return;
+      if (!ws || !duration) return;
 
       const container = ws.container;
+      if (!container) return;
+
       const rect = container.getBoundingClientRect();
 
       const x =
         moveEvent.clientX - rect.left + container.scrollLeft;
 
-      const percent = x / container.scrollWidth;
+      const percent = x / (container.scrollWidth || 1);
       const newTime = percent * duration;
 
       setPlaylist((prev) => {
@@ -131,15 +145,15 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       <div style={{ position: "relative" }}>
         <div ref={containerRef} />
 
-        {/* 🔴 DRAGGABLE SEGUE MARKER */}
-        {duration > 0 && (
+        {/* 🔴 DRAGGABLE MARKER */}
+        {isReady && (
           <div
             onMouseDown={startDrag}
             style={{
               position: "absolute",
               left: `${getMarkerPosition()}px`,
               top: 0,
-              width: 8,
+              width: 6,
               height: "100%",
               background: "red",
               cursor: "ew-resize",
@@ -150,7 +164,7 @@ const Waveform = ({ trackObj, i, setPlaylist }) => {
       </div>
 
       <div style={{ marginTop: 5 }}>
-        Segue point: {Math.floor(trackObj.segueStart || 0)}s
+        Segue: {Math.floor(trackObj.segueStart || 0)}s
       </div>
     </div>
   );
